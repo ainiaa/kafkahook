@@ -35,4 +35,10 @@ func TestLogEntryWritten(t *testing.T) {
 	log.Hooks.Add(hook)
 
 	log.Info("test log info")
+
+	log.Warn("test log warn")
+
+	log.Error("test log error")
+
+	log.Fatal("test log fatal")
 }
