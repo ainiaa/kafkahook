@@ -1,4 +1,4 @@
-module logrus-kafkahook
+module github.com/ainiaa/logrus-kafkahook
 
 go 1.12
 
