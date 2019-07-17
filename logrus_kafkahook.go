@@ -39,13 +39,32 @@ func (hook *KafkaHook) Fire(entry *logrus.Entry) error {
 	}
 	msg.Value = sarama.ByteEncoder(content)
 	if hook.sync {
-		producer, _ := sarama.NewAsyncProducerFromClient(hook.client)
+		producer, err := sarama.NewSyncProducerFromClient(hook.client)
+		if err != nil {
+			fmt.Printf("sarama.NewSyncProducerFromClient error:%s\n", err.Error())
+			return err
+		}
+		defer producer.Close()
+
+		partition, offset, err := producer.SendMessage(msg)
+		if err != nil {
+			fmt.Printf("producer.SendMessage error:%s\n", err.Error())
+			return err
+		}
+		fmt.Printf("partition:%d offset:%d\n", partition, offset)
+	} else {
+		producer, err := sarama.NewAsyncProducerFromClient(hook.client)
+		if err != nil {
+			fmt.Printf("sarama.NewAsyncProducerFromClient error:%s\n", err.Error())
+			return err
+		}
 		defer producer.AsyncClose()
+		producer.Input() <- msg
 	}
 	return nil
 }
 
-func (hook *KafkaHook)createContent(entry *logrus.Entry) []byte {
+func (hook *KafkaHook) createContent(entry *logrus.Entry) []byte {
 	// use our formatter instead of entry.String()
 	msg, err := hook.formatter.Format(entry)
 	if err != nil {
