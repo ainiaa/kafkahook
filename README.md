@@ -1,5 +1,5 @@
-# logrus-kafkahook
-logrus-kafkahook
+# kafkahook
+kafkahook
 
 ```go
 log := logrus.New()
