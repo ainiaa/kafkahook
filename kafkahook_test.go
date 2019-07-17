@@ -1,4 +1,4 @@
-package logrus_kafkahook
+package kafkahook
 
 import (
 	"fmt"
