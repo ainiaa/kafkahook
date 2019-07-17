@@ -1,7 +1,7 @@
 # logrus-kafkahook
 logrus-kafkahook
 
-
+```go
 log := logrus.New()
 
 config := sarama.NewConfig()
@@ -32,3 +32,4 @@ log.Warn("test log warn")
 log.Error("test log error")
 
 log.Fatal("test log fatal")
+```
