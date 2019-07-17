@@ -33,4 +33,6 @@ func TestLogEntryWritten(t *testing.T) {
 
 	hook := NewHook(client, "go_kafka_log",formatter)
 	log.Hooks.Add(hook)
+
+	log.Info("test log info")
 }
