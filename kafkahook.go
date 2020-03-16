@@ -44,7 +44,7 @@ func (hook *KafkaHook) Fire(entry *logrus.Entry) error {
 		}
 		defer producer.Close()
 
-		_, _, err := producer.SendMessage(msg)
+		_, _, err = producer.SendMessage(msg)
 		if err != nil {
 			return err
 		}
