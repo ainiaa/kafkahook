@@ -1,7 +1,6 @@
 package kafkahook
 
 import (
-	"fmt"
 	"github.com/Shopify/sarama"
 	"github.com/sirupsen/logrus"
 )
@@ -16,10 +15,10 @@ type KafkaHook struct {
 }
 
 // NewHook returns new Kafka hook.
-func NewHook(client sarama.Client, topic string, formatter logrus.Formatter) *KafkaHook {
+func NewHook(client sarama.Client, topic string, sync bool, formatter logrus.Formatter) *KafkaHook {
 	hook := &KafkaHook{
 		client:    client,
-		sync:      true,
+		sync:      sync,
 		topic:     topic,
 		formatter: formatter,
 	}
@@ -41,21 +40,17 @@ func (hook *KafkaHook) Fire(entry *logrus.Entry) error {
 	if hook.sync {
 		producer, err := sarama.NewSyncProducerFromClient(hook.client)
 		if err != nil {
-			fmt.Printf("sarama.NewSyncProducerFromClient error:%s\n", err.Error())
 			return err
 		}
 		defer producer.Close()
 
 		partition, offset, err := producer.SendMessage(msg)
 		if err != nil {
-			fmt.Printf("producer.SendMessage error:%s\n", err.Error())
 			return err
 		}
-		fmt.Printf("partition:%d offset:%d\n", partition, offset)
 	} else {
 		producer, err := sarama.NewAsyncProducerFromClient(hook.client)
 		if err != nil {
-			fmt.Printf("sarama.NewAsyncProducerFromClient error:%s\n", err.Error())
 			return err
 		}
 		defer producer.AsyncClose()
@@ -68,7 +63,6 @@ func (hook *KafkaHook) createContent(entry *logrus.Entry) []byte {
 	// use our formatter instead of entry.String()
 	msg, err := hook.formatter.Format(entry)
 	if err != nil {
-		fmt.Printf("hook.formatter.Format error:%s", err.Error())
 		return []byte("")
 	}
 	return msg
