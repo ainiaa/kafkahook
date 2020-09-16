@@ -7,22 +7,58 @@ import (
 
 // KafkaHook is a hook to handle writing to kafka log files.
 type KafkaHook struct {
-	formatter logrus.Formatter
-	sync      bool
-	topic     string
-	client    sarama.Client
-	levels    []logrus.Level
+	formatter     logrus.Formatter
+	sync          bool
+	topic         string
+	syncProducer  sarama.SyncProducer
+	asyncProducer sarama.AsyncProducer
+	levels        []logrus.Level
+}
+
+type Option func(hook *KafkaHook)
+
+var defaultHook = KafkaHook{
+	formatter:     &logrus.TextFormatter{},
+	sync:          true,
+	topic:         "",
+	syncProducer:  nil,
+	asyncProducer: nil,
+	levels:        nil,
+}
+
+func WithLevels(levels []logrus.Level) Option {
+	return func(hook *KafkaHook) {
+		hook.levels = levels
+	}
+}
+
+func WithFormatter(formatter logrus.Formatter) Option {
+	return func(hook *KafkaHook) {
+		hook.formatter = formatter
+	}
 }
 
 // NewHook returns new Kafka hook.
-func NewHook(client sarama.Client, topic string, sync bool, formatter logrus.Formatter) *KafkaHook {
-	hook := &KafkaHook{
-		client:    client,
-		sync:      sync,
-		topic:     topic,
-		formatter: formatter,
+func NewSyncHook(topic string, producer sarama.SyncProducer, opts ...Option) *KafkaHook {
+	hook := &defaultHook
+	hook.topic = topic
+	hook.sync = true
+	hook.syncProducer = producer
+	for _, o := range opts {
+		o(hook)
 	}
+	return hook
+}
 
+// NewHook returns new Kafka hook.
+func NewAsyncHook(topic string, producer sarama.AsyncProducer, opts ...Option) *KafkaHook {
+	hook := &defaultHook
+	hook.topic = topic
+	hook.sync = false
+	hook.asyncProducer = producer
+	for _, o := range opts {
+		o(hook)
+	}
 	return hook
 }
 
@@ -38,23 +74,12 @@ func (hook *KafkaHook) Fire(entry *logrus.Entry) error {
 	}
 	msg.Value = sarama.ByteEncoder(content)
 	if hook.sync {
-		producer, err := sarama.NewSyncProducerFromClient(hook.client)
-		if err != nil {
-			return err
-		}
-		defer producer.Close()
-
-		_, _, err = producer.SendMessage(msg)
+		_, _, err := hook.syncProducer.SendMessage(msg)
 		if err != nil {
 			return err
 		}
 	} else {
-		producer, err := sarama.NewAsyncProducerFromClient(hook.client)
-		if err != nil {
-			return err
-		}
-		defer producer.AsyncClose()
-		producer.Input() <- msg
+		hook.asyncProducer.Input() <- msg
 	}
 	return nil
 }
