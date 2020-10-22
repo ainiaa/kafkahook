@@ -40,7 +40,14 @@ func WithFormatter(formatter logrus.Formatter) Option {
 
 // NewHook returns new Kafka hook.
 func NewSyncHook(topic string, producer sarama.SyncProducer, opts ...Option) *KafkaHook {
-	hook := &defaultHook
+	hook := &KafkaHook{
+		formatter:     &logrus.TextFormatter{},
+		sync:          true,
+		topic:         "",
+		syncProducer:  nil,
+		asyncProducer: nil,
+		levels:        nil,
+	}
 	hook.topic = topic
 	hook.sync = true
 	hook.syncProducer = producer
@@ -52,7 +59,14 @@ func NewSyncHook(topic string, producer sarama.SyncProducer, opts ...Option) *Ka
 
 // NewHook returns new Kafka hook.
 func NewAsyncHook(topic string, producer sarama.AsyncProducer, opts ...Option) *KafkaHook {
-	hook := &defaultHook
+	hook := &KafkaHook{
+		formatter:     &logrus.TextFormatter{},
+		sync:          true,
+		topic:         "",
+		syncProducer:  nil,
+		asyncProducer: nil,
+		levels:        nil,
+	}
 	hook.topic = topic
 	hook.sync = false
 	hook.asyncProducer = producer
