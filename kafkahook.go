@@ -1,6 +1,8 @@
 package kafkahook
 
 import (
+	"time"
+
 	"github.com/Shopify/sarama"
 	"github.com/sirupsen/logrus"
 )
@@ -13,6 +15,7 @@ type KafkaHook struct {
 	syncProducer  sarama.SyncProducer
 	asyncProducer sarama.AsyncProducer
 	levels        []logrus.Level
+	timeout       time.Duration
 }
 
 type Option func(hook *KafkaHook)
@@ -24,6 +27,12 @@ var defaultHook = KafkaHook{
 	syncProducer:  nil,
 	asyncProducer: nil,
 	levels:        nil,
+}
+
+func WithTimeout(timeout time.Duration) Option {
+	return func(hook *KafkaHook) {
+		hook.timeout = timeout
+	}
 }
 
 func WithLevels(levels []logrus.Level) Option {
@@ -93,7 +102,14 @@ func (hook *KafkaHook) Fire(entry *logrus.Entry) error {
 			return err
 		}
 	} else {
-		hook.asyncProducer.Input() <- msg
+		if hook.timeout > 0 {
+			select {
+			case <-time.After(hook.timeout):
+			case hook.asyncProducer.Input() <- msg:
+			}
+		} else {
+			hook.asyncProducer.Input() <- msg
+		}
 	}
 	return nil
 }
