@@ -20,15 +20,6 @@ type KafkaHook struct {
 
 type Option func(hook *KafkaHook)
 
-var defaultHook = KafkaHook{
-	formatter:     &logrus.TextFormatter{},
-	sync:          true,
-	topic:         "",
-	syncProducer:  nil,
-	asyncProducer: nil,
-	levels:        nil,
-}
-
 func WithTimeout(timeout time.Duration) Option {
 	return func(hook *KafkaHook) {
 		hook.timeout = timeout
