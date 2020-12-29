@@ -9,13 +9,15 @@ import (
 
 // KafkaHook is a hook to handle writing to kafka log files.
 type KafkaHook struct {
-	formatter     logrus.Formatter
-	sync          bool
-	topic         string
-	syncProducer  sarama.SyncProducer
-	asyncProducer sarama.AsyncProducer
-	levels        []logrus.Level
-	timeout       time.Duration
+	formatter      logrus.Formatter
+	sync           bool
+	topic          string
+	accessTopic    string
+	isAccessLogKey string
+	syncProducer   sarama.SyncProducer
+	asyncProducer  sarama.AsyncProducer
+	levels         []logrus.Level
+	timeout        time.Duration
 }
 
 type Option func(hook *KafkaHook)
@@ -23,6 +25,18 @@ type Option func(hook *KafkaHook)
 func WithTimeout(timeout time.Duration) Option {
 	return func(hook *KafkaHook) {
 		hook.timeout = timeout
+	}
+}
+
+func WithAccessLogTopic(accessTopic string) Option {
+	return func(hook *KafkaHook) {
+		hook.accessTopic = accessTopic
+	}
+}
+
+func WithIsAccessLogKey(isAccessLogKey string) Option {
+	return func(hook *KafkaHook) {
+		hook.isAccessLogKey = isAccessLogKey
 	}
 }
 
@@ -49,6 +63,8 @@ func NewSyncHook(topic string, producer sarama.SyncProducer, opts ...Option) *Ka
 		levels:        nil,
 	}
 	hook.topic = topic
+	hook.accessTopic = topic
+	hook.isAccessLogKey = "is_access_log"
 	hook.sync = true
 	hook.syncProducer = producer
 	for _, o := range opts {
@@ -119,13 +135,16 @@ func (hook *KafkaHook) getTopic(entry *logrus.Entry) string {
 	fields := entry.Data
 	if len(fields) > 0 {
 		for fk, fv := range fields {
-			if fk == "kafka_log_topic" {
-				topic = fv.(string)
+			if fk == hook.isAccessLogKey {
+				if fv.(bool) {
+					topic = hook.accessTopic
+				}
+				break
 			}
 		}
 	}
 
-	return  topic
+	return topic
 }
 
 // Levels returns configured log levels.
