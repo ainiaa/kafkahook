@@ -30,7 +30,9 @@ func WithTimeout(timeout time.Duration) Option {
 
 func WithAccessLogTopic(accessTopic string) Option {
 	return func(hook *KafkaHook) {
-		hook.accessTopic = accessTopic
+		if accessTopic != "" {
+			hook.accessTopic = accessTopic
+		}
 	}
 }
 
