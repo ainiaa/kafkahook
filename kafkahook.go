@@ -81,9 +81,9 @@ func NewAsyncHook(topic string, producer sarama.AsyncProducer, opts ...Option) *
 func (hook *KafkaHook) Fire(entry *logrus.Entry) error {
 
 	content := hook.createContent(entry)
-
+	topic := hook.getTopic(entry)
 	msg := &sarama.ProducerMessage{
-		Topic: hook.topic,
+		Topic: topic,
 		Key:   sarama.StringEncoder("go_log"),
 	}
 	msg.Value = sarama.ByteEncoder(content)
@@ -112,6 +112,20 @@ func (hook *KafkaHook) createContent(entry *logrus.Entry) []byte {
 		return []byte("")
 	}
 	return msg
+}
+
+func (hook *KafkaHook) getTopic(entry *logrus.Entry) string {
+	topic := hook.topic
+	fields := entry.Data
+	if len(fields) > 0 {
+		for fk, fv := range fields {
+			if fk == "kafka_log_topic" {
+				topic = fv.(string)
+			}
+		}
+	}
+
+	return  topic
 }
 
 // Levels returns configured log levels.
