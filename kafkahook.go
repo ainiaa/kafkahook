@@ -95,7 +95,10 @@ func NewAsyncHook(topic string, producer sarama.AsyncProducer, opts ...Option) *
 // Fire writes the log file to defined path or using the defined writer.
 // User who run this function needs write permissions to the file or directory if the file does not yet exist.
 func (hook *KafkaHook) Fire(entry *logrus.Entry) error {
-
+	defer func() {
+		if r := recover(); r != nil {
+		}
+	}()
 	content := hook.createContent(entry)
 	topic := hook.getTopic(entry)
 	msg := &sarama.ProducerMessage{
