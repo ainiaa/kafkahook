@@ -1,6 +1,8 @@
 package kafkahook
 
 import (
+	"fmt"
+	"os"
 	"time"
 
 	"github.com/Shopify/sarama"
@@ -95,11 +97,21 @@ func NewAsyncHook(topic string, producer sarama.AsyncProducer, opts ...Option) *
 // Fire writes the log file to defined path or using the defined writer.
 // User who run this function needs write permissions to the file or directory if the file does not yet exist.
 func (hook *KafkaHook) Fire(entry *logrus.Entry) error {
+	content := hook.createContent(entry)
 	defer func() {
 		if r := recover(); r != nil {
+			if len(content) > 0 {
+				fmt.Printf("err on Fire\n")
+				n, err := os.Stdout.Write(content)
+				if err != nil {
+					fmt.Printf("os.Stdout.Write error:%s\n", err.Error())
+				} else {
+					fmt.Printf("os.Stdout.Write success write bytes:%d\n", n)
+				}
+			}
 		}
 	}()
-	content := hook.createContent(entry)
+
 	topic := hook.getTopic(entry)
 	msg := &sarama.ProducerMessage{
 		Topic: topic,
